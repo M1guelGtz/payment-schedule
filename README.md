@@ -65,24 +65,21 @@ Primero el backend (para tener su URL), luego el frontend.
 5. En **Settings → Networking → Generate Domain** para obtener una URL pública, ej.
    `https://turnos-pago-production.up.railway.app`. **Cópiala.**
 
-### B) Frontend en Vercel
+### B) Frontend en Vercel (estático, sin build)
 
-La URL del backend se inyecta como **variable de entorno** `API_BASE`. En el build,
-`scripts/build-config.js` genera `public/config.js` con ese valor (nada hardcodeado).
-El `vercel.json` ya deja configurado el build y la carpeta de salida.
+1. Edita `public/config.js` y pega la URL de tu backend en Railway (sin barra final):
+   ```js
+   window.API_BASE = "https://payment-schedule-production.up.railway.app";
+   ```
+   Haz commit y push.
+2. En [vercel.com](https://vercel.com) → **Add New → Project**, elige el mismo repo.
+3. En la configuración:
+   - **Root Directory:** `public`  ← ahí vive el front estático.
+   - **Framework Preset:** Other. **Sin Build Command** (déjalo vacío/override off).
+4. Deploy. Vercel publica el contenido de `public/` tal cual y te da un dominio
+   tipo `https://payment-schedule.vercel.app`.
 
-1. En [vercel.com](https://vercel.com) → **Add New → Project**, elige el mismo repo.
-2. Deja **Root Directory** en la raíz del repo (NO `public`; el `vercel.json` ya apunta
-   la salida a `public`). Framework Preset: *Other*.
-3. En **Settings → Environment Variables** agrega:
-   - `API_BASE` = tu URL de Railway (ej. `https://turnos-pago-production.up.railway.app`).
-4. Deploy. Vercel corre `node scripts/build-config.js`, genera el `config.js` con tu URL
-   y publica. Te da un dominio tipo `https://turnos-pago.vercel.app`.
-
-> Si más adelante cambias la URL del backend, solo edita la variable `API_BASE` en Vercel
-> y vuelve a desplegar (**Redeploy**). No tocas código.
-
-Para probar el build localmente: `API_BASE="https://tu-backend" npm run build:config`.
+> Si cambias la URL del backend, edita `public/config.js`, haz push y Vercel redepliega solo.
 
 ### C) Cerrar el candado (CORS)
 

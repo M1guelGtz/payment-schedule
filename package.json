@@ -5,8 +5,7 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js",
-    "build:config": "node scripts/build-config.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": "20.x"

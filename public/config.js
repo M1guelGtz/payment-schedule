@@ -1,3 +1,7 @@
-// ⚙️ Archivo GENERADO automáticamente en el build (no lo edites a mano).
-// Su valor viene de la variable de entorno API_BASE.
-window.API_BASE = "payment-schedule-production.up.railway.app";
+// ─────────────────────────────────────────────────────────────
+//  URL del backend (Railway).
+//  Pega aquí tu dominio de Railway, SIN barra final. Ejemplo:
+//    window.API_BASE = "https://payment-schedule-production.up.railway.app";
+//  Déjalo vacío ("") si sirves el backend y el front desde el mismo lugar.
+// ─────────────────────────────────────────────────────────────
+window.API_BASE = "";
