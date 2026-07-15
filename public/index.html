@@ -326,6 +326,39 @@
   .toast.success{background:var(--menta); color:#fff}
   .toast.error{background:var(--rojo); color:#fff}
   .toast.round{background:var(--ambar); color:var(--grafito)}
+
+  /* ---------- Candado (PIN compartido) ---------- */
+  .lock{
+    position:fixed; inset:0; z-index:100; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; padding:var(--s5);
+  }
+  .lock[hidden]{display:none}
+  .lock-card{
+    width:100%; max-width:360px; background:var(--panel); border:1.5px solid var(--linea);
+    border-radius:var(--r-panel); padding:var(--s6) var(--s5); text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,.15);
+  }
+  .lock-emoji{
+    width:56px; height:56px; margin:0 auto var(--s4); border-radius:16px;
+    background:var(--cobalto); display:flex; align-items:center; justify-content:center;
+    font-size:1.6rem;
+  }
+  .lock-card h2{font-size:1.25rem; font-weight:700; letter-spacing:-.02em; margin-bottom:var(--s2)}
+  .lock-card p{color:var(--grafito-60); font-size:.92rem; margin-bottom:var(--s5)}
+  .lock-card input{
+    width:100%; text-align:center; font-family:var(--mono); font-size:1.4rem;
+    letter-spacing:.3em; padding:var(--s3); margin-bottom:var(--s3);
+    border-radius:10px; border:1.5px solid var(--linea); background:var(--bg); color:var(--text);
+  }
+  .lock-card input:focus{outline:none; border-color:var(--cobalto); box-shadow:0 0 0 3px rgba(58,52,214,.15)}
+  .lock-card .btn{width:100%; padding:var(--s3)}
+  .lock-err{color:var(--rojo)!important; font-size:.85rem!important; min-height:1.1em; margin:var(--s3) 0 0!important}
+  .lockbtn{
+    background:transparent; border:none; cursor:pointer; font-size:.95rem; line-height:1;
+    padding:2px 4px; margin-left:var(--s2); opacity:.65;
+  }
+  .lockbtn:hover{opacity:1}
+  .lockbtn[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -334,6 +367,7 @@
     <h1>🎟 Turnero</h1>
     <span class="tag">turnos de pago</span>
     <span class="conn"><span class="dot" id="dot"></span><span id="connText">conectando</span></span>
+    <button class="lockbtn" id="lockBtn" title="Bloquear en este dispositivo" hidden>🔒</button>
   </div>
 
   <!-- Conmutador de servicios -->
@@ -348,27 +382,59 @@
   <main id="main"></main>
 </div>
 
+<div class="lock" id="lock" hidden>
+  <div class="lock-card">
+    <div class="lock-emoji">🔒</div>
+    <h2>Turnero protegido</h2>
+    <p>Ingresa el PIN que comparten en el equipo.</p>
+    <input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="• • • •" maxlength="20">
+    <button class="btn btn-primary" id="pinBtn">Entrar</button>
+    <p class="lock-err" id="pinErr"></p>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="config.js"></script>
 <script>
 'use strict';
+// URL del backend. Vacío = mismo origen (útil en local o si sirves todo junto).
+// En Vercel, pon aquí tu dominio de Railway, ej: 'https://turnos-pago.up.railway.app'
+const API_BASE = (window.API_BASE || '').replace(/\/+$/, '');
 const LS_ACTIVE = 'turnero-active-service';
 let services = [];
 let activeId = null;
 let paying = false;
 let lastSnapshot = '';   // evita re-render si nada cambió en el servidor
+let PIN = localStorage.getItem('turnero-pin') || '';
+let pollStarted = false;
 
 // ---------- API ----------
 async function api(path, opts){
-  const res = await fetch('/api' + path, Object.assign({
-    headers:{ 'Content-Type':'application/json' }
-  }, opts));
+  const headers = { 'Content-Type':'application/json' };
+  if(PIN) headers['X-App-Pin'] = PIN;
+  const res = await fetch(API_BASE + '/api' + path, Object.assign({ headers }, opts));
+  if(res.status === 401){
+    // El PIN cambió o dejó de ser válido: pídelo de nuevo.
+    PIN = ''; localStorage.removeItem('turnero-pin');
+    document.getElementById('lockBtn').hidden = true;
+    showLock('El PIN cambió o es incorrecto. Ingrésalo de nuevo.');
+    throw new Error('PIN requerido');
+  }
   if(!res.ok){
     let msg = 'Algo salió mal';
     try{ msg = (await res.json()).error || msg; }catch(e){}
     throw new Error(msg);
   }
   return res.json();
+}
+
+// Valida un PIN candidato contra un endpoint protegido.
+async function validatePin(pin){
+  try{
+    const res = await fetch(API_BASE + '/api/services', { headers:{ 'X-App-Pin': pin } });
+    return res.ok;
+  }catch(e){ return false; }
 }
 
 function setConn(ok){
@@ -699,10 +765,71 @@ document.getElementById('newSvcInput').addEventListener('keydown', e=>{
   if(e.key==='Escape') toggleNewSvc(false);
 });
 
+// ---------- Candado ----------
+function showLock(msg){
+  const l = document.getElementById('lock');
+  l.hidden = false;
+  document.getElementById('pinErr').textContent = msg || '';
+  const pi = document.getElementById('pinInput');
+  pi.value = ''; setTimeout(()=>pi.focus(), 50);
+}
+function hideLock(){ document.getElementById('lock').hidden = true; }
+
+async function submitPin(){
+  const pi = document.getElementById('pinInput');
+  const val = pi.value.trim();
+  if(!val) return;
+  const btn = document.getElementById('pinBtn');
+  btn.disabled = true; btn.textContent = 'Verificando…';
+  const ok = await validatePin(val);
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if(ok){
+    PIN = val; localStorage.setItem('turnero-pin', PIN);
+    startApp();
+    toast('¡Bienvenido! 🎟', 'success');
+  }else{
+    document.getElementById('pinErr').textContent = 'PIN incorrecto. Intenta de nuevo.';
+    pi.value = ''; pi.focus();
+  }
+}
+function logout(){
+  PIN = ''; localStorage.removeItem('turnero-pin');
+  document.getElementById('lockBtn').hidden = true;
+  showLock();
+}
+document.getElementById('pinBtn').onclick = submitPin;
+document.getElementById('pinInput').addEventListener('keydown', e=>{ if(e.key==='Enter') submitPin(); });
+document.getElementById('lockBtn').onclick = logout;
+
 // ---------- Arranque ----------
-document.getElementById('main').innerHTML = '<div class="skel"></div>';
-refresh();
-setInterval(()=>{ if(!paying) refresh(); }, 5000); // sincroniza con lo que hagan tus compañeros
+function startApp(){
+  hideLock();
+  document.getElementById('lockBtn').hidden = !PIN;   // botón bloquear solo si hay PIN
+  if(!pollStarted){
+    pollStarted = true;
+    // Sincroniza cada 5s, salvo que esté pagando o el candado esté visible.
+    setInterval(()=>{ if(!paying && document.getElementById('lock').hidden) refresh(); }, 5000);
+  }
+  refresh();
+}
+
+async function boot(){
+  document.getElementById('main').innerHTML = '<div class="skel"></div>';
+  let cfg;
+  try{
+    const r = await fetch(API_BASE + '/api/config');
+    cfg = await r.json();
+    setConn(true);
+  }catch(e){
+    setConn(false);
+    setTimeout(boot, 3000);   // reintenta si el backend aún no responde
+    return;
+  }
+  if(!cfg.pinRequired){ startApp(); return; }   // instancia abierta
+  if(PIN && await validatePin(PIN)){ startApp(); return; }   // PIN guardado válido
+  showLock();
+}
+boot();
 </script>
 </body>
 </html>

@@ -36,24 +36,65 @@ turnos-pago/
 | POST   | `/api/reset-round`  | Desmarca los pagos de la ronda actual       |
 | POST   | `/api/reset-all`    | Borra todo y reinicia                       |
 
-## Subirla a internet (acceso desde cualquier lugar)
+## Despliegue: backend en Railway + frontend en Vercel
 
-El servidor lee dos variables de entorno:
+El servidor lee estas variables de entorno:
 
-- `PORT` → puerto (lo asigna el hosting automáticamente).
-- `DB_PATH` → ruta del archivo SQLite. **Apúntala a un disco persistente** del hosting
-  para que la base de datos no se borre en cada reinicio.
+| Variable      | Para qué                                                                 |
+|---------------|--------------------------------------------------------------------------|
+| `PORT`        | Puerto. Railway lo asigna solo — no lo toques.                           |
+| `DB_PATH`     | Ruta del archivo SQLite. **Apúntala a un Volume** para que no se borre.  |
+| `CORS_ORIGIN` | Dominio del front autorizado (ej. `https://tu-app.vercel.app`). Def: `*` |
+| `APP_PIN`     | PIN compartido para entrar. Sin definir = app abierta (sin PIN).         |
 
-### Opción recomendada: Render.com
+### Orden recomendado
 
-1. Sube esta carpeta a un repositorio de GitHub.
-2. En [render.com](https://render.com) → **New → Web Service** y conecta el repo.
-3. Configuración:
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-4. Agrega un **Disk** (pestaña *Disks*), por ejemplo montado en `/data`.
-5. En **Environment** agrega la variable `DB_PATH = /data/turnos.db`.
-6. Deploy. Render te dará una URL pública tipo `https://turnos-pago.onrender.com`.
+Primero el backend (para tener su URL), luego el frontend.
 
-> Nota: sin un disco persistente, muchos hostings gratuitos borran el archivo SQLite al
-> reiniciar. Por eso se usa `DB_PATH` apuntando a un disco montado.
+### A) Backend en Railway
+
+1. Sube esta carpeta a un repositorio de **GitHub**.
+2. En [railway.app](https://railway.app) → **New Project → Deploy from GitHub repo** y elige el repo.
+   Railway detecta Node por `package.json` y usa `npm install` + `npm start` automáticamente.
+3. **Agrega un Volume** (clic derecho en el servicio → *Add Volume*), con **Mount path** = `/data`.
+   Esto es lo que hace que la base SQLite **sobreviva** a los reinicios y redeploys.
+4. En **Variables** agrega:
+   - `DB_PATH` = `/data/turnos.db`
+   - `APP_PIN` = el PIN que compartirás con el equipo (ej. `4726`). Omítelo para dejarla abierta.
+   - (más tarde) `CORS_ORIGIN` = la URL de tu front en Vercel.
+5. En **Settings → Networking → Generate Domain** para obtener una URL pública, ej.
+   `https://turnos-pago-production.up.railway.app`. **Cópiala.**
+
+### B) Frontend en Vercel
+
+La URL del backend se inyecta como **variable de entorno** `API_BASE`. En el build,
+`scripts/build-config.js` genera `public/config.js` con ese valor (nada hardcodeado).
+El `vercel.json` ya deja configurado el build y la carpeta de salida.
+
+1. En [vercel.com](https://vercel.com) → **Add New → Project**, elige el mismo repo.
+2. Deja **Root Directory** en la raíz del repo (NO `public`; el `vercel.json` ya apunta
+   la salida a `public`). Framework Preset: *Other*.
+3. En **Settings → Environment Variables** agrega:
+   - `API_BASE` = tu URL de Railway (ej. `https://turnos-pago-production.up.railway.app`).
+4. Deploy. Vercel corre `node scripts/build-config.js`, genera el `config.js` con tu URL
+   y publica. Te da un dominio tipo `https://turnos-pago.vercel.app`.
+
+> Si más adelante cambias la URL del backend, solo edita la variable `API_BASE` en Vercel
+> y vuelve a desplegar (**Redeploy**). No tocas código.
+
+Para probar el build localmente: `API_BASE="https://tu-backend" npm run build:config`.
+
+### C) Cerrar el candado (CORS)
+
+Vuelve a Railway → **Variables** → pon `CORS_ORIGIN` = tu URL de Vercel y redeploy.
+Así solo tu front podrá hablar con el backend.
+
+> **Nota sobre tus datos locales:** `turnos.db` está en `.gitignore`, así que NO se sube.
+> En Railway se crea una base nueva y vacía sobre el Volume. Tus servicios locales
+> (COCACOLA, etc.) se quedan en tu PC; en producción empiezas limpio.
+
+### Alternativa más simple (todo en Railway, sin Vercel)
+
+Como el backend ya sirve el front (`express.static`), puedes desplegar **solo** en Railway
+dejando `config.js` con `API_BASE = ""` y abrir directamente la URL de Railway. Un solo
+servicio, sin CORS. Vercel se justifica si quieres CDN/dominio propio para el front.

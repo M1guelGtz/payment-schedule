@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/build-config.js",
+  "outputDirectory": "public",
+  "installCommand": "echo sin-dependencias"
+}

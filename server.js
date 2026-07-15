@@ -4,6 +4,8 @@ const Database = require('better-sqlite3');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// PIN compartido para el equipo. Si queda vacío, la app NO pide PIN (modo abierto).
+const APP_PIN = (process.env.APP_PIN || '').trim();
 
 // --- Base de datos SQLite ---
 // La ruta se puede sobreescribir con DB_PATH (útil para montar un volumen en el hosting).
@@ -86,8 +88,33 @@ function serviceExists(id) {
 }
 
 // --- Middleware ---
+// CORS: permite que el front (Vercel, otro origen) hable con este backend.
+// En producción, pon CORS_ORIGIN = https://tu-app.vercel.app para restringirlo.
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', CORS_ORIGIN);
+  res.header('Vary', 'Origin');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, X-App-Pin');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Endpoint público: indica al front si esta instancia pide PIN (sin revelarlo).
+app.get('/api/config', (req, res) => {
+  res.json({ pinRequired: !!APP_PIN });
+});
+
+// Candado: si hay APP_PIN configurado, exige el header X-App-Pin en el resto de /api.
+app.use('/api', (req, res, next) => {
+  if (!APP_PIN) return next();              // modo abierto
+  if (req.method === 'OPTIONS') return next();
+  if (req.header('X-App-Pin') === APP_PIN) return next();
+  return res.status(401).json({ error: 'PIN incorrecto' });
+});
 
 // --- API: servicios ---
 app.get('/api/services', (req, res) => {

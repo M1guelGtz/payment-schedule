@@ -5,10 +5,11 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build:config": "node scripts/build-config.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   },
   "dependencies": {
     "better-sqlite3": "^11.3.0",
