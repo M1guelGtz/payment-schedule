@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turnero · turnos de pago</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ SISTEMA DE DISEÑO — "Tinta & Señal" ============ */
+  :root{
+    /* Paleta */
+    --grafito:#1B1D24;
+    --grafito-60:rgba(27,29,36,.60);
+    --grafito-40:rgba(27,29,36,.38);
+    --bruma:#E7EAF0;
+    --nieve:#FBFCFE;
+    --cobalto:#3A34D6;
+    --cobalto-ink:#2621a8;
+    --ambar:#FFB020;
+    --menta:#0E9F6E;
+    --menta-bg:#E1F4EC;
+    --linea:#D3D8E2;
+    --rojo:#D6455B;
+
+    /* Espaciado base 4px */
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+
+    /* Tipografía */
+    --display:'Space Grotesk',system-ui,-apple-system,sans-serif;
+    --mono:'Space Mono','SFMono-Regular',ui-monospace,monospace;
+
+    /* Radios */
+    --r-chip:8px; --r-panel:14px; --r-pill:999px;
+
+    --bg:var(--bruma);
+    --panel:var(--nieve);
+    --text:var(--grafito);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --grafito:#EEF0F6;
+      --grafito-60:rgba(238,240,246,.62);
+      --grafito-40:rgba(238,240,246,.40);
+      --bruma:#14151B;
+      --nieve:#1E2029;
+      --cobalto:#6B62FF;
+      --cobalto-ink:#4b43e0;
+      --linea:#31343F;
+      --menta:#2BD69B;
+      --menta-bg:#123227;
+      --bg:#0F1015;
+      --panel:#1B1D25;
+      --text:#EEF0F6;
+    }
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:var(--display);
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.45;
+    padding:var(--s5) var(--s4) var(--s8);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:600px; margin:0 auto}
+
+  /* ---------- Encabezado ---------- */
+  .brand{display:flex; align-items:baseline; gap:var(--s3); margin-bottom:var(--s5)}
+  .brand h1{
+    font-size:clamp(1.15rem,5vw,1.4rem); font-weight:700; letter-spacing:-.02em;
+    text-transform:uppercase;
+  }
+  .brand .tag{
+    font-family:var(--mono); font-size:.7rem; color:var(--grafito-60);
+    letter-spacing:.05em; text-transform:uppercase;
+  }
+  .conn{
+    display:inline-flex; align-items:center; gap:6px; margin-left:auto;
+    font-family:var(--mono); font-size:.66rem; color:var(--grafito-60);
+  }
+  .conn .dot{width:7px; height:7px; border-radius:50%; background:var(--menta)}
+  .conn .dot.off{background:var(--rojo)}
+
+  /* ---------- Conmutador de servicios (chips) ---------- */
+  .services{
+    display:flex; gap:var(--s2); overflow-x:auto; padding-bottom:var(--s3);
+    margin-bottom:var(--s4); scrollbar-width:thin; -webkit-overflow-scrolling:touch;
+  }
+  .services::-webkit-scrollbar{height:4px}
+  .services::-webkit-scrollbar-thumb{background:var(--linea); border-radius:2px}
+  .chip{
+    flex:0 0 auto; display:inline-flex; align-items:center; gap:var(--s2);
+    padding:var(--s2) var(--s4); border-radius:var(--r-chip);
+    border:1.5px solid var(--linea); background:var(--panel); color:var(--text);
+    font-family:var(--display); font-size:.9rem; font-weight:500; cursor:pointer;
+    white-space:nowrap; transition:border-color .12s, background .12s, color .12s;
+    min-height:40px;
+  }
+  .chip:hover{border-color:var(--cobalto)}
+  .chip.active{background:var(--cobalto); border-color:var(--cobalto); color:#fff}
+  .chip .cdot{
+    width:8px; height:8px; border-radius:50%; background:var(--ambar); flex:0 0 auto;
+  }
+  .chip.active .cdot{background:#fff}
+  .chip.done .cdot{background:var(--menta)}
+  .chip-add{
+    flex:0 0 auto; min-height:40px; padding:var(--s2) var(--s4);
+    border-radius:var(--r-chip); border:1.5px dashed var(--linea);
+    background:transparent; color:var(--grafito-60); font-family:var(--display);
+    font-size:.9rem; font-weight:500; cursor:pointer; white-space:nowrap;
+    transition:border-color .12s,color .12s;
+  }
+  .chip-add:hover{border-color:var(--cobalto); color:var(--cobalto)}
+
+  /* ---------- Formulario nuevo servicio (inline) ---------- */
+  .new-svc{display:none; gap:var(--s2); margin-bottom:var(--s4)}
+  .new-svc.show{display:flex}
+
+  /* ---------- El TIQUETE (firma visual) ---------- */
+  .ticket{
+    position:relative; background:var(--cobalto); color:#fff;
+    border-radius:var(--r-panel) var(--r-panel) 0 0;
+    padding:var(--s5) var(--s5) var(--s6);
+    overflow:hidden;
+  }
+  .ticket .ticket-top{
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:var(--mono); font-size:.7rem; letter-spacing:.08em;
+    text-transform:uppercase; color:rgba(255,255,255,.72); margin-bottom:var(--s4);
+  }
+  .ticket .who-label{
+    font-family:var(--mono); font-size:.7rem; letter-spacing:.12em;
+    text-transform:uppercase; color:rgba(255,255,255,.72);
+  }
+  .ticket .who{
+    font-size:clamp(2rem,11vw,3rem); font-weight:700; letter-spacing:-.03em;
+    line-height:1.02; margin:var(--s1) 0 var(--s4); word-break:break-word;
+  }
+  .ticket .who.done{font-size:clamp(1.5rem,8vw,2.1rem)}
+  .ticket .meta{display:flex; align-items:center; gap:var(--s4); flex-wrap:wrap}
+  .ticket .light{
+    display:inline-flex; align-items:center; gap:var(--s2);
+    font-family:var(--mono); font-size:.74rem; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase;
+    background:var(--ambar); color:var(--grafito);
+    padding:var(--s1) var(--s3); border-radius:var(--r-pill);
+  }
+  .ticket .light .bulb{
+    width:9px; height:9px; border-radius:50%; background:var(--grafito);
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .ticket .light .bulb{animation:pulse 1.6s ease-in-out infinite}
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .ticket .turnnum{
+    font-family:var(--mono); font-size:.78rem; letter-spacing:.06em;
+    color:rgba(255,255,255,.82); text-transform:uppercase;
+  }
+  /* Borde inferior troquelado (perforado tipo boleto) */
+  .ticket-perf{
+    height:14px; background:var(--cobalto);
+    -webkit-mask:radial-gradient(circle 7px at 12px 14px, transparent 98%, #000) repeat-x;
+    mask:radial-gradient(circle 7px at 12px 14px, transparent 98%, #000) repeat-x;
+    -webkit-mask-size:24px 14px; mask-size:24px 14px;
+  }
+
+  /* ---------- Acción principal (Fitts) ---------- */
+  .pay{
+    width:100%; min-height:58px; margin-top:var(--s4);
+    background:var(--menta); color:#fff; border:none; border-radius:var(--r-panel);
+    font-family:var(--display); font-size:1.05rem; font-weight:600; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:var(--s2);
+    transition:transform .1s, filter .12s;
+  }
+  .pay:hover{filter:brightness(1.06)}
+  .pay:active{transform:scale(.985)}
+  .pay:disabled{background:var(--linea); color:var(--grafito-40); cursor:default}
+  .pay.busy{pointer-events:none; opacity:.75}
+  .spin{
+    width:16px; height:16px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.4); border-top-color:#fff;
+  }
+  @media (prefers-reduced-motion: no-preference){ .spin{animation:rot .7s linear infinite} }
+  @keyframes rot{to{transform:rotate(360deg)}}
+
+  /* ---------- Roster ---------- */
+  .roster{margin-top:var(--s5); list-style:none}
+  /* Cada fila es un CHECK tocable (reversible con un toque) */
+  .person{
+    display:flex; align-items:center; gap:var(--s3);
+    padding:var(--s3); border-radius:10px; cursor:pointer;
+    background:var(--panel); border:1.5px solid var(--linea); margin-bottom:var(--s2);
+    position:relative; transition:border-color .12s, background .12s;
+    -webkit-tap-highlight-color:transparent; user-select:none;
+  }
+  .person:hover{border-color:var(--cobalto)}
+  .person:focus-visible{outline:none; border-color:var(--cobalto); box-shadow:0 0 0 3px rgba(58,52,214,.18)}
+  .person .num{
+    flex:0 0 auto; width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:.76rem; font-weight:700;
+    background:var(--bruma); color:var(--grafito-60); border:1.5px solid var(--linea);
+  }
+  .person .pname{font-weight:500; font-size:1rem; word-break:break-word}
+  .person .leader{
+    flex:1; border-bottom:1.5px dotted var(--linea); margin:0 var(--s2); align-self:center; height:1px; min-width:12px;
+  }
+  /* La casilla de verificación */
+  .person .check{
+    flex:0 0 auto; display:inline-flex; align-items:center; gap:var(--s2);
+    font-family:var(--mono); font-size:.66rem; font-weight:700; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--grafito-60); white-space:nowrap;
+  }
+  .person .box{
+    width:26px; height:26px; border-radius:8px; border:2px solid var(--linea);
+    display:flex; align-items:center; justify-content:center; background:var(--panel);
+    transition:background .12s, border-color .12s;
+  }
+  .person .box svg{width:15px; height:15px; opacity:0; transform:scale(.6); transition:opacity .12s, transform .12s}
+  .person:hover .box{border-color:var(--menta)}
+  /* Estado: pagado */
+  .person.paid{border-color:transparent}
+  .person.paid .pname{color:var(--grafito-40); text-decoration:line-through}
+  .person.paid .num{background:var(--menta-bg); color:var(--menta); border-color:transparent}
+  .person.paid .box{background:var(--menta); border-color:var(--menta)}
+  .person.paid .box svg{opacity:1; transform:scale(1); color:#fff}
+  .person.paid .check{color:var(--menta)}
+  /* Estado: le toca (turno activo, aún sin pagar) — luz ámbar */
+  .person.current{border-color:var(--ambar)}
+  .person.current .num{background:var(--ambar); color:var(--grafito); border-color:transparent}
+  .person.current .check{color:var(--grafito)}
+  .person.current .box{border-color:var(--ambar)}
+  .person.current:hover .box{border-color:var(--ambar)}
+  .person .del{
+    flex:0 0 auto; width:30px; height:30px; border:none; background:transparent;
+    color:var(--grafito-40); font-size:1.15rem; cursor:pointer; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; transition:color .12s,background .12s;
+  }
+  .person .del:hover{color:var(--rojo); background:var(--bruma)}
+
+  /* ---------- Progreso ---------- */
+  .progress{
+    display:flex; align-items:center; gap:var(--s3);
+    margin-top:var(--s4); font-family:var(--mono); font-size:.74rem; color:var(--grafito-60);
+  }
+  .pips{display:flex; gap:5px}
+  .pip{width:10px; height:10px; border-radius:50%; background:var(--linea)}
+  .pip.on{background:var(--menta)}
+  .progress .round{margin-left:auto; text-transform:uppercase; letter-spacing:.06em}
+  .progress .round b{color:var(--text)}
+
+  /* ---------- Zona secundaria ---------- */
+  .divider{height:1px; background:var(--linea); margin:var(--s5) 0}
+  .add-person{display:flex; gap:var(--s2)}
+  input[type=text]{
+    flex:1; min-width:0; padding:var(--s3) var(--s4); border-radius:10px;
+    border:1.5px solid var(--linea); background:var(--panel); color:var(--text);
+    font-family:var(--display); font-size:1rem; min-height:46px;
+  }
+  input[type=text]::placeholder{color:var(--grafito-40)}
+  input[type=text]:focus{outline:none; border-color:var(--cobalto); box-shadow:0 0 0 3px rgba(58,52,214,.15)}
+  .btn{
+    border:none; border-radius:10px; padding:0 var(--s5); min-height:46px;
+    font-family:var(--display); font-size:.95rem; font-weight:600; cursor:pointer;
+    transition:filter .12s, transform .1s;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--cobalto); color:#fff}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-line{background:transparent; border:1.5px solid var(--linea); color:var(--text)}
+  .btn-line:hover{border-color:var(--cobalto)}
+
+  /* Ajustes desplegable */
+  .settings{margin-top:var(--s4)}
+  .settings summary{
+    list-style:none; cursor:pointer; font-family:var(--mono); font-size:.74rem;
+    color:var(--grafito-60); text-transform:uppercase; letter-spacing:.06em;
+    display:inline-flex; align-items:center; gap:6px; user-select:none;
+  }
+  .settings summary::-webkit-details-marker{display:none}
+  .settings summary::before{content:'⚙'; font-size:.9rem}
+  .settings[open] summary::before{content:'⚙'}
+  .settings .acts{display:flex; flex-wrap:wrap; gap:var(--s2); margin-top:var(--s3)}
+  .btn-ghost{
+    background:transparent; border:1.5px solid var(--linea); color:var(--grafito-60);
+    border-radius:8px; padding:var(--s2) var(--s3); font-family:var(--display);
+    font-size:.82rem; font-weight:500; cursor:pointer; transition:color .12s,border-color .12s;
+  }
+  .btn-ghost:hover{color:var(--text); border-color:var(--grafito-40)}
+  .btn-ghost.danger:hover{color:var(--rojo); border-color:var(--rojo)}
+
+  /* ---------- Estados vacíos ---------- */
+  .empty{
+    text-align:center; padding:var(--s7) var(--s4); color:var(--grafito-60);
+    border:1.5px dashed var(--linea); border-radius:var(--r-panel); background:var(--panel);
+  }
+  .empty .big{font-size:2.4rem; margin-bottom:var(--s3)}
+  .empty p{font-size:.95rem; max-width:34ch; margin:0 auto var(--s4)}
+  .empty-roster{
+    text-align:center; padding:var(--s5); color:var(--grafito-60);
+    font-size:.92rem; border:1.5px dashed var(--linea); border-radius:10px; margin-top:var(--s5);
+  }
+
+  /* Skeleton de carga */
+  .skel{background:var(--panel); border-radius:var(--r-panel); height:190px; border:1.5px solid var(--linea)}
+  @media (prefers-reduced-motion: no-preference){
+    .skel{animation:sk 1.2s ease-in-out infinite}
+  }
+  @keyframes sk{0%,100%{opacity:.6}50%{opacity:.95}}
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed; left:50%; bottom:var(--s5); transform:translate(-50%,20px);
+    background:var(--grafito); color:var(--bg);
+    padding:var(--s3) var(--s5); border-radius:var(--r-pill);
+    font-family:var(--display); font-weight:600; font-size:.92rem;
+    box-shadow:0 10px 30px rgba(0,0,0,.25); opacity:0; pointer-events:none; z-index:50;
+    max-width:90vw; text-align:center;
+  }
+  @media (prefers-reduced-motion: no-preference){ .toast{transition:opacity .25s, transform .25s} }
+  .toast.show{opacity:1; transform:translate(-50%,0)}
+  .toast.success{background:var(--menta); color:#fff}
+  .toast.error{background:var(--rojo); color:#fff}
+  .toast.round{background:var(--ambar); color:var(--grafito)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <h1>🎟 Turnero</h1>
+    <span class="tag">turnos de pago</span>
+    <span class="conn"><span class="dot" id="dot"></span><span id="connText">conectando</span></span>
+  </div>
+
+  <!-- Conmutador de servicios -->
+  <div class="services" id="services"></div>
+  <div class="new-svc" id="newSvc">
+    <input type="text" id="newSvcInput" placeholder="Nombre del servicio (ej. Café, Garrafón…)" maxlength="30">
+    <button class="btn btn-primary" id="newSvcSave">Crear</button>
+    <button class="btn btn-line" id="newSvcCancel">✕</button>
+  </div>
+
+  <!-- Contenido del servicio activo -->
+  <main id="main"></main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const LS_ACTIVE = 'turnero-active-service';
+let services = [];
+let activeId = null;
+let paying = false;
+let lastSnapshot = '';   // evita re-render si nada cambió en el servidor
+
+// ---------- API ----------
+async function api(path, opts){
+  const res = await fetch('/api' + path, Object.assign({
+    headers:{ 'Content-Type':'application/json' }
+  }, opts));
+  if(!res.ok){
+    let msg = 'Algo salió mal';
+    try{ msg = (await res.json()).error || msg; }catch(e){}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+function setConn(ok){
+  document.getElementById('dot').className = 'dot' + (ok?'':' off');
+  document.getElementById('connText').textContent = ok ? 'guardado en la base' : 'sin conexión';
+}
+
+function activeService(){
+  return services.find(s => s.id === activeId) || null;
+}
+
+function chooseActive(){
+  if(services.length === 0){ activeId = null; return; }
+  if(!services.some(s => s.id === activeId)){
+    const saved = parseInt(localStorage.getItem(LS_ACTIVE), 10);
+    activeId = services.some(s => s.id === saved) ? saved : services[0].id;
+  }
+}
+
+// ---------- Carga / refresco ----------
+async function refresh(){
+  try{
+    const data = await api('/services');
+    setConn(true);
+    const snap = JSON.stringify(data.services);
+    if(snap === lastSnapshot) return;   // nada cambió → no tocar el DOM
+    lastSnapshot = snap;
+    services = data.services;
+    chooseActive();
+    render();
+  }catch(e){
+    setConn(false);
+  }
+}
+
+function applyData(data){
+  services = data.services;
+  lastSnapshot = JSON.stringify(data.services);
+  chooseActive();
+  render();
+}
+
+// ---------- Acciones: servicios ----------
+function toggleNewSvc(show){
+  const box = document.getElementById('newSvc');
+  box.classList.toggle('show', show);
+  if(show){ document.getElementById('newSvcInput').focus(); }
+  else { document.getElementById('newSvcInput').value = ''; }
+}
+
+async function crearServicio(){
+  const inp = document.getElementById('newSvcInput');
+  const name = inp.value.trim();
+  if(!name) return;
+  try{
+    const data = await api('/services', { method:'POST', body: JSON.stringify({ name }) });
+    activeId = data.createdId;
+    localStorage.setItem(LS_ACTIVE, activeId);
+    toggleNewSvc(false);
+    applyData(data);
+    toast('Servicio "'+name+'" creado', 'success');
+  }catch(e){ toast(e.message, 'error'); }
+}
+
+async function renombrarServicio(s){
+  const name = prompt('Nuevo nombre para el servicio:', s.name);
+  if(name === null) return;
+  const clean = name.trim();
+  if(!clean || clean === s.name) return;
+  try{ applyData(await api('/services/'+s.id, { method:'PATCH', body: JSON.stringify({ name: clean }) })); }
+  catch(e){ toast(e.message, 'error'); }
+}
+
+async function eliminarServicio(s){
+  if(!confirm('¿Eliminar el servicio "'+s.name+'" y toda su rotación? No se puede deshacer.')) return;
+  try{
+    const data = await api('/services/'+s.id, { method:'DELETE' });
+    if(s.id === activeId) activeId = null;
+    applyData(data);
+    toast('Servicio eliminado', 'success');
+  }catch(e){ toast(e.message, 'error'); }
+}
+
+// ---------- Acciones: participantes ----------
+async function agregarPersona(){
+  const s = activeService(); if(!s) return;
+  const inp = document.getElementById('nameInput');
+  const name = inp.value.trim();
+  if(!name) return;
+  inp.value=''; inp.focus();
+  try{ applyData(await api('/services/'+s.id+'/people', { method:'POST', body: JSON.stringify({ name }) })); }
+  catch(e){ toast(e.message, 'error'); }
+}
+
+async function eliminarPersona(id, name){
+  if(!confirm('¿Quitar a '+name+' de esta rotación?')) return;
+  try{ applyData(await api('/people/'+id, { method:'DELETE' })); }
+  catch(e){ toast(e.message, 'error'); }
+}
+
+// Alterna el check de una persona (reversible). No cambia la ronda.
+async function togglePersona(id){
+  const s = activeService(); if(!s) return;
+  const p = s.people.find(x => x.id === id);
+  try{
+    const data = await api('/people/'+id+'/toggle', { method:'POST' });
+    applyData(data);
+    const svc = services.find(x => x.id === s.id);
+    const allPaid = svc && svc.people.length > 0 && svc.currentId === null;
+    if(data.nowPaid && allPaid){
+      toast('¡Todos pagaron! Inicia la ronda '+String((svc ? svc.round : 1)+1).padStart(2,'0')+' cuando quieran', 'round');
+    } else if(p){
+      toast(p.name + (data.nowPaid ? ' ✓ pagó' : ' desmarcado'), data.nowPaid ? 'success' : null);
+    }
+  }catch(e){ toast(e.message, 'error'); }
+}
+
+// Botón grande contextual: marca a quien le toca, o inicia la siguiente ronda si todos pagaron.
+async function accionPrincipal(){
+  const s = activeService(); if(!s || s.people.length===0 || paying) return;
+  const cur = s.people.find(p => p.id === s.currentId);
+  if(cur){ togglePersona(cur.id); return; }
+  // Ronda completa -> iniciar la siguiente (acción explícita)
+  paying = true; render();
+  try{
+    const data = await api('/services/'+s.id+'/new-round', { method:'POST' });
+    paying = false; applyData(data);
+    toast('¡Ronda '+String(data.round).padStart(2,'0')+' iniciada!', 'round');
+  }catch(e){ paying = false; render(); toast(e.message, 'error'); }
+}
+
+async function reiniciarRonda(){
+  const s = activeService(); if(!s) return;
+  if(!confirm('¿Reiniciar la ronda de "'+s.name+'"? Se desmarcan todos los pagos.')) return;
+  try{ applyData(await api('/services/'+s.id+'/reset-round', { method:'POST' })); }
+  catch(e){ toast(e.message, 'error'); }
+}
+
+// ---------- Render ----------
+function renderChips(){
+  const box = document.getElementById('services');
+  box.innerHTML = '';
+  services.forEach(s => {
+    const done = s.people.length>0 && s.currentId===null;
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (s.id===activeId?' active':'') + (done?' done':'');
+    const dot = document.createElement('span');
+    dot.className = 'cdot';
+    const label = document.createElement('span');
+    label.textContent = s.name;
+    if(s.people.length>0) btn.appendChild(dot);
+    btn.appendChild(label);
+    btn.onclick = ()=>{ activeId = s.id; localStorage.setItem(LS_ACTIVE, activeId); render(); };
+    box.appendChild(btn);
+  });
+  const add = document.createElement('button');
+  add.className = 'chip-add';
+  add.textContent = '+ Nuevo servicio';
+  add.onclick = ()=>toggleNewSvc(true);
+  box.appendChild(add);
+}
+
+function renderMain(){
+  const main = document.getElementById('main');
+  const s = activeService();
+
+  // Sin servicios
+  if(!s){
+    main.innerHTML =
+      '<div class="empty">'+
+        '<div class="big">🎟</div>'+
+        '<p>Crea tu primer servicio: café, garrafón de agua, pizza del viernes… cada uno lleva su propia rotación de turnos.</p>'+
+        '<button class="btn btn-primary" id="firstSvc">+ Crear un servicio</button>'+
+      '</div>';
+    document.getElementById('firstSvc').onclick = ()=>toggleNewSvc(true);
+    return;
+  }
+
+  const people = s.people;
+  const n = people.length;
+  const paidCount = people.filter(p=>p.paid).length;
+  const cur = people.find(p=>p.id===s.currentId);
+  const done = n>0 && !cur;
+
+  // --- Tiquete ---
+  let ticketBody;
+  if(n===0){
+    ticketBody =
+      '<div class="who-label">sin participantes</div>'+
+      '<div class="who done">Agrega compañeros</div>'+
+      '<div class="meta"><span class="turnnum">↓ empieza abajo</span></div>';
+  } else if(done){
+    ticketBody =
+      '<div class="who-label">estado</div>'+
+      '<div class="who done">Ronda completa ✓</div>'+
+      '<div class="meta"><span class="turnnum">Todos pagaron · marca un pago para iniciar la ronda '+(s.round+1)+'</span></div>';
+  } else {
+    const pos = people.indexOf(cur)+1;
+    ticketBody =
+      '<div class="who-label">le toca pagar a</div>'+
+      '<div class="who"></div>'+
+      '<div class="meta">'+
+        '<span class="light"><span class="bulb"></span>Paga hoy</span>'+
+        '<span class="turnnum">Turno '+String(pos).padStart(2,'0')+' de '+String(n).padStart(2,'0')+'</span>'+
+      '</div>';
+  }
+
+  const payLabel = paying
+    ? '<span class="spin"></span> Guardando…'
+    : (cur ? '✓ '+cur.name+' ya pagó' : (done ? '→ Iniciar ronda '+String(s.round+1).padStart(2,'0') : '✓ Registrar pago'));
+
+  // --- Roster (cada fila = check reversible) ---
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  let rosterHtml;
+  if(n===0){
+    rosterHtml = '<div class="empty-roster">Aún no hay nadie en esta rotación. Agrega al primer compañero 👇</div>';
+  } else {
+    rosterHtml = '<ul class="roster" id="roster">' + people.map((p,i)=>{
+      const isCur = p.id===s.currentId;
+      const cls = 'person' + (p.paid?' paid':'') + (isCur?' current':'');
+      const status = p.paid ? 'Pagó' : (isCur ? 'Paga hoy' : 'Marcar');
+      return '<li class="'+cls+'" data-id="'+p.id+'" role="checkbox" tabindex="0" aria-checked="'+(p.paid?'true':'false')+'">'+
+        '<span class="num">'+(i+1)+'</span>'+
+        '<span class="pname"></span>'+
+        '<span class="leader"></span>'+
+        '<span class="check"><span class="status-txt">'+status+'</span><span class="box">'+CHECK_SVG+'</span></span>'+
+        '<button class="del" title="Quitar de la rotación" data-del="'+p.id+'">×</button>'+
+      '</li>';
+    }).join('') + '</ul>';
+  }
+
+  // --- Progreso (pips, máx 12 para no saturar) ---
+  const pips = Array.from({length:n}).map((_,i)=>'<span class="pip'+(i<paidCount?' on':'')+'"></span>').join('');
+  const progressHtml = n>0
+    ? '<div class="progress">'+
+        (n<=12 ? '<span class="pips">'+pips+'</span>' : '')+
+        '<span>'+paidCount+' de '+n+' pagaron</span>'+
+        '<span class="round">Ronda <b>'+String(s.round).padStart(2,'0')+'</b></span>'+
+      '</div>'
+    : '';
+
+  main.innerHTML =
+    '<section>'+
+      '<div class="ticket">'+ticketBody+'</div>'+
+      '<div class="ticket-perf"></div>'+
+      '<button class="pay'+(paying?' busy':'')+'" id="payBtn"'+(n===0?' disabled':'')+'>'+payLabel+'</button>'+
+      rosterHtml+
+      progressHtml+
+      '<div class="divider"></div>'+
+      '<div class="add-person">'+
+        '<input type="text" id="nameInput" placeholder="Agregar compañero a '+escapeAttr(s.name)+'…" maxlength="30">'+
+        '<button class="btn btn-primary" id="addBtn">Agregar</button>'+
+      '</div>'+
+      '<details class="settings">'+
+        '<summary>Ajustes de "'+escapeHtml(s.name)+'"</summary>'+
+        '<div class="acts">'+
+          '<button class="btn-ghost" id="renameBtn">✎ Renombrar servicio</button>'+
+          '<button class="btn-ghost" id="resetRoundBtn">↻ Reiniciar ronda</button>'+
+          '<button class="btn-ghost danger" id="delSvcBtn">🗑 Eliminar servicio</button>'+
+        '</div>'+
+      '</details>'+
+    '</section>';
+
+  // Rellenar nombres de forma segura (evita inyección de HTML)
+  if(cur){ main.querySelector('.ticket .who').textContent = cur.name; }
+  if(n>0){
+    const nodes = main.querySelectorAll('#roster .pname');
+    people.forEach((p,i)=>{ nodes[i].textContent = p.name; });
+  }
+
+  // Eventos
+  document.getElementById('payBtn').onclick = accionPrincipal;
+  document.getElementById('addBtn').onclick = agregarPersona;
+  const ni = document.getElementById('nameInput');
+  ni.addEventListener('keydown', e=>{ if(e.key==='Enter') agregarPersona(); });
+  document.getElementById('renameBtn').onclick = ()=>renombrarServicio(s);
+  document.getElementById('resetRoundBtn').onclick = reiniciarRonda;
+  document.getElementById('delSvcBtn').onclick = ()=>eliminarServicio(s);
+
+  // Cada fila alterna el check (clic o Enter/Espacio); el botón × elimina.
+  main.querySelectorAll('#roster .person').forEach(li=>{
+    const id = Number(li.getAttribute('data-id'));
+    const p = people.find(x=>x.id===id);
+    li.onclick = e=>{ if(e.target.closest('.del')) return; togglePersona(id); };
+    li.onkeydown = e=>{
+      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); togglePersona(id); }
+    };
+    li.querySelector('.del').onclick = e=>{ e.stopPropagation(); eliminarPersona(id, p ? p.name : ''); };
+  });
+}
+
+function render(){
+  // Preserva lo que el usuario esté escribiendo si un re-render llega en medio
+  const ni = document.getElementById('nameInput');
+  const savedName = ni ? ni.value : null;
+  const keepFocus = !!ni && document.activeElement === ni;
+
+  renderChips();
+  renderMain();
+
+  if(savedName){
+    const ni2 = document.getElementById('nameInput');
+    if(ni2){
+      ni2.value = savedName;
+      if(keepFocus){ ni2.focus(); ni2.setSelectionRange(savedName.length, savedName.length); }
+    }
+  }
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return escapeHtml(s); }
+
+// ---------- Toast ----------
+let toastTimer;
+function toast(msg, type){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type?(' '+type):'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.className = 'toast'; }, 2800);
+}
+
+// ---------- Eventos globales ----------
+document.getElementById('newSvcSave').onclick = crearServicio;
+document.getElementById('newSvcCancel').onclick = ()=>toggleNewSvc(false);
+document.getElementById('newSvcInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') crearServicio();
+  if(e.key==='Escape') toggleNewSvc(false);
+});
+
+// ---------- Arranque ----------
+document.getElementById('main').innerHTML = '<div class="skel"></div>';
+refresh();
+setInterval(()=>{ if(!paying) refresh(); }, 5000); // sincroniza con lo que hagan tus compañeros
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turnos de Pago</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --card2:#273449; --border:#334155;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#0ea5e9;
+    --green:#22c55e; --green-bg:#14331f; --amber:#f59e0b; --red:#ef4444;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f1f5f9; --card:#ffffff; --card2:#f8fafc; --border:#e2e8f0;
+      --text:#0f172a; --muted:#64748b; --accent:#0284c7; --accent2:#0369a1;
+      --green:#16a34a; --green-bg:#dcfce7; --amber:#d97706; --red:#dc2626;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.5;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:640px; margin:0 auto}
+  header{margin-bottom:20px}
+  h1{font-size:1.5rem; margin:0 0 4px; display:flex; align-items:center; gap:10px}
+  .sub{color:var(--muted); font-size:.9rem; margin:0}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:18px; margin-bottom:16px;
+  }
+  .turn-banner{
+    background:linear-gradient(135deg,var(--accent2),var(--accent));
+    color:#fff; text-align:center; padding:22px; border-radius:14px; margin-bottom:16px;
+  }
+  .turn-banner .label{font-size:.8rem; text-transform:uppercase; letter-spacing:1px; opacity:.9}
+  .turn-banner .name{font-size:1.8rem; font-weight:700; margin:6px 0}
+  .turn-banner .empty{font-size:1.1rem; opacity:.95}
+  .row{display:flex; gap:8px; align-items:center}
+  input[type=text]{
+    flex:1; padding:11px 13px; border-radius:10px; border:1px solid var(--border);
+    background:var(--card2); color:var(--text); font-size:1rem; min-width:0;
+  }
+  input:focus{outline:2px solid var(--accent); outline-offset:0}
+  button{
+    font-family:inherit; font-size:.95rem; cursor:pointer; border:none;
+    border-radius:10px; padding:11px 16px; font-weight:600; transition:.15s;
+  }
+  button:active{transform:scale(.97)}
+  .btn-primary{background:var(--accent); color:#fff}
+  .btn-primary:hover{background:var(--accent2)}
+  .btn-pay{background:var(--green); color:#fff; width:100%; padding:14px; font-size:1.05rem; margin-top:14px}
+  .btn-pay:hover{filter:brightness(1.08)}
+  .btn-ghost{background:transparent; color:var(--muted); border:1px solid var(--border); padding:8px 12px; font-size:.85rem}
+  .btn-ghost:hover{color:var(--text); border-color:var(--muted)}
+  .section-title{font-size:.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:0 0 12px; font-weight:600}
+  ul{list-style:none; margin:0; padding:0}
+  li.person{
+    display:flex; align-items:center; gap:12px; padding:12px;
+    border-radius:10px; margin-bottom:8px; background:var(--card2);
+    border:1px solid transparent;
+  }
+  li.person:last-child{margin-bottom:0}
+  li.person.current{border-color:var(--accent); background:var(--card)}
+  li.person.paid .pname{text-decoration:line-through; color:var(--muted)}
+  .badge-num{
+    width:26px; height:26px; border-radius:50%; background:var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:.8rem;
+    font-weight:700; color:var(--text); flex-shrink:0;
+  }
+  li.person.current .badge-num{background:var(--accent); color:#fff}
+  .pname{flex:1; font-weight:500}
+  .status{font-size:.78rem; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap}
+  .status.paid{background:var(--green-bg); color:var(--green)}
+  .status.pending{background:transparent; color:var(--muted); border:1px solid var(--border)}
+  .status.turn{background:var(--accent); color:#fff}
+  .remove{background:none; border:none; color:var(--muted); cursor:pointer; font-size:1.2rem; padding:2px 6px; line-height:1}
+  .remove:hover{color:var(--red)}
+  .progress-wrap{margin:14px 0 4px}
+  .progress-bar{height:8px; background:var(--border); border-radius:20px; overflow:hidden}
+  .progress-fill{height:100%; background:var(--green); border-radius:20px; transition:width .3s}
+  .progress-text{font-size:.82rem; color:var(--muted); margin-top:6px; display:flex; justify-content:space-between}
+  .foot{display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:8px; flex-wrap:wrap}
+  .round-tag{font-size:.85rem; color:var(--muted)}
+  .round-tag b{color:var(--text)}
+  .empty-hint{color:var(--muted); font-size:.9rem; text-align:center; padding:10px 0}
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--green); color:#fff; padding:12px 22px; border-radius:12px;
+    font-weight:600; opacity:0; pointer-events:none; transition:.3s; box-shadow:0 8px 24px rgba(0,0,0,.3);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💸 Turnos de Pago</h1>
+    <p class="sub">Un día lo paga uno, otro día otro... hasta que pasan todos.</p>
+  </header>
+
+  <div class="turn-banner" id="banner">
+    <div class="label">Le toca pagar a</div>
+    <div class="name" id="currentName">—</div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">Ronda actual</p>
+    <ul id="list"></ul>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-text">
+        <span id="progressText">0 de 0 han pagado</span>
+        <span class="round-tag">Ronda <b id="roundNum">1</b></span>
+      </div>
+    </div>
+    <button class="btn-pay" id="payBtn" onclick="marcarPago()">✅ Marcar pago de esta ronda</button>
+    <div class="foot">
+      <button class="btn-ghost" onclick="reiniciarRonda()">↻ Reiniciar ronda</button>
+      <button class="btn-ghost" onclick="borrarTodo()">🗑 Borrar todo</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">Agregar compañero</p>
+    <div class="row">
+      <input type="text" id="nameInput" placeholder="Nombre..." onkeydown="if(event.key==='Enter')agregar()" maxlength="30">
+      <button class="btn-primary" onclick="agregar()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'turnos-pago-v1';
+let state = load();
+
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if(s && Array.isArray(s.people)) return s;
+  }catch(e){}
+  return { people:[], turn:0, round:1 };
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+function agregar(){
+  const inp = document.getElementById('nameInput');
+  const name = inp.value.trim();
+  if(!name) return;
+  state.people.push({ name, paid:false });
+  inp.value=''; inp.focus();
+  save(); render();
+}
+
+function eliminar(i){
+  if(!confirm('¿Eliminar a '+state.people[i].name+'?')) return;
+  state.people.splice(i,1);
+  if(state.turn >= state.people.length) state.turn = 0;
+  save(); render();
+}
+
+function marcarPago(){
+  if(state.people.length===0) return;
+  // marca al que le toca como pagado y avanza al siguiente pendiente
+  const cur = state.turn;
+  if(!state.people[cur].paid){
+    state.people[cur].paid = true;
+    toast('¡'+state.people[cur].name+' ya pagó! 🎉');
+  }
+  avanzarTurno();
+  save(); render();
+}
+
+function avanzarTurno(){
+  const n = state.people.length;
+  if(n===0){ state.turn=0; return; }
+  // ¿todos pagaron? -> nueva ronda
+  if(state.people.every(p=>p.paid)){
+    state.round++;
+    state.people.forEach(p=>p.paid=false);
+    state.turn = 0;
+    toast('Ronda completa ✔ Empieza la ronda '+state.round);
+    return;
+  }
+  // busca el siguiente pendiente
+  let t = state.turn;
+  for(let k=0;k<n;k++){
+    t = (t+1)%n;
+    if(!state.people[t].paid){ state.turn=t; return; }
+  }
+}
+
+function reiniciarRonda(){
+  if(state.people.length===0) return;
+  if(!confirm('¿Reiniciar la ronda actual? Se desmarcan todos los pagos.')) return;
+  state.people.forEach(p=>p.paid=false);
+  state.turn = 0;
+  save(); render();
+}
+
+function borrarTodo(){
+  if(!confirm('¿Borrar TODOS los compañeros y reiniciar? Esta acción no se puede deshacer.')) return;
+  state = { people:[], turn:0, round:1 };
+  save(); render();
+}
+
+function render(){
+  const list = document.getElementById('list');
+  const n = state.people.length;
+  list.innerHTML = '';
+
+  if(n===0){
+    list.innerHTML = '<li class="empty-hint">Agrega a tus compañeros abajo para empezar 👇</li>';
+    document.getElementById('currentName').textContent = '—';
+    document.getElementById('banner').style.opacity = .6;
+    document.getElementById('payBtn').disabled = true;
+    document.getElementById('payBtn').style.opacity = .5;
+  } else {
+    document.getElementById('banner').style.opacity = 1;
+    document.getElementById('payBtn').disabled = false;
+    document.getElementById('payBtn').style.opacity = 1;
+    document.getElementById('currentName').textContent = state.people[state.turn].name;
+  }
+
+  state.people.forEach((p,i)=>{
+    const li = document.createElement('li');
+    li.className = 'person' + (p.paid?' paid':'') + (i===state.turn && !p.paid?' current':'');
+    let statusHtml;
+    if(p.paid) statusHtml = '<span class="status paid">Pagó ✓</span>';
+    else if(i===state.turn) statusHtml = '<span class="status turn">Le toca</span>';
+    else statusHtml = '<span class="status pending">Pendiente</span>';
+
+    li.innerHTML =
+      '<span class="badge-num">'+(i+1)+'</span>'+
+      '<span class="pname"></span>'+
+      statusHtml+
+      '<button class="remove" title="Eliminar">×</button>';
+    li.querySelector('.pname').textContent = p.name;
+    li.querySelector('.remove').onclick = ()=>eliminar(i);
+    list.appendChild(li);
+  });
+
+  const paidCount = state.people.filter(p=>p.paid).length;
+  const pct = n? Math.round(paidCount/n*100):0;
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressText').textContent = paidCount+' de '+n+' han pagado';
+  document.getElementById('roundNum').textContent = state.round;
+}
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+render();
+</script>
+</body>
+</html>

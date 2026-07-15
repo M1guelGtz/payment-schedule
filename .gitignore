@@ -1,0 +1,5 @@
+node_modules/
+turnos.db
+turnos.db-shm
+turnos.db-wal
+*.log
